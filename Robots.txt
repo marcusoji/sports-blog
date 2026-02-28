@@ -1,0 +1,11 @@
+# Mock University - Robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://www.mockuniversity.com/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1

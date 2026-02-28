@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Upcoming fixtures and match schedule from Mock University sports competitions">
+    <title>Fixtures | Mock University</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+    <link rel="stylesheet" href="/src/styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .fixtures-hero {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: var(--text-inverse);
+            padding: 3rem 0;
+            text-align: center;
+        }
+        
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background-color: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+        
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .date-group {
+            margin-bottom: 2rem;
+        }
+        
+        .date-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 0;
+            border-bottom: 2px solid var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .date-header h3 {
+            font-size: 1.25rem;
+            margin: 0;
+            color: var(--text-primary);
+        }
+        
+        .date-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            background-color: var(--primary-color);
+            color: var(--text-inverse);
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .fixtures-list {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .fixture-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            transition: all var(--transition-base);
+        }
+        
+        .fixture-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+            border-color: var(--primary-light);
+        }
+        
+        .fixture-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .competition-badge {
+            padding: 0.25rem 0.75rem;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .time-badge {
+            padding: 0.25rem 0.75rem;
+            background-color: var(--accent-color);
+            color: var(--text-inverse);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .fixture-teams {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            margin: 1rem 0;
+        }
+        
+        .fixture-team {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .fixture-team.away {
+            flex-direction: row-reverse;
+            text-align: right;
+        }
+        
+        .team-logo-small {
+            width: 40px;
+            height: 40px;
+            background-color: var(--bg-tertiary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .team-name-large {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .vs-text {
+            font-size: 1rem;
+            color: var(--text-tertiary);
+            font-weight: 700;
+        }
+        
+        .fixture-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-light);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .fixture-teams {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            
+            .vs-text {
+                order: 2;
+                text-align: center;
+                padding: 0.5rem 0;
+            }
+            
+            .fixture-team.away {
+                order: 3;
+                flex-direction: row;
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div class="logo-icon">🎓</div>
+                    <span>Mock University</span>
+                </a>
+                
+                <nav class="nav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="blog.html" class="nav-link">Blog</a>
+                    <a href="live-scores.html" class="nav-link">Live Scores</a>
+                    <a href="fixtures.html" class="nav-link active">Fixtures</a>
+                    <a href="standings.html" class="nav-link">Standings</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                </nav>
+                
+                <div class="header-actions">
+                    <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+                    <button class="mobile-menu-btn" aria-label="Toggle mobile menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="mobile-menu">
+        <nav class="mobile-nav">
+            <a href="index.html" class="mobile-nav-link">Home</a>
+            <a href="blog.html" class="mobile-nav-link">Blog</a>
+            <a href="live-scores.html" class="mobile-nav-link">Live Scores</a>
+            <a href="fixtures.html" class="mobile-nav-link active">Fixtures</a>
+            <a href="standings.html" class="mobile-nav-link">Standings</a>
+            <a href="contact.html" class="mobile-nav-link">Contact</a>
+        </nav>
+    </div>
+    
+    <div class="fixtures-hero">
+        <div class="container">
+            <h1>Fixtures</h1>
+            <p>Upcoming matches and schedules</p>
+        </div>
+    </div>
+    
+    <section class="section">
+        <div class="container">
+            <div class="filters">
+                <div class="filter-group">
+                    <label class="form-label">Competition Type</label>
+                    <select id="competitionType" class="form-select">
+                        <option value="">All Competitions</option>
+                        <option value="faculty">Faculty</option>
+                        <option value="department">Department</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="form-label">Level</label>
+                    <select id="levelFilter" class="form-select">
+                        <option value="">All Levels</option>
+                        <option value="level 1">Level 1</option>
+                        <option value="level 2">Level 2</option>
+                        <option value="level 3">Level 3</option>
+                        <option value="level 4">Level 4</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="form-label">Time Period</label>
+                    <select id="timePeriod" class="form-select">
+                        <option value="all">All Upcoming</option>
+                        <option value="today">Today</option>
+                        <option value="tomorrow">Tomorrow</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="fixturesByDate">
+                <div class="flex-center">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mock University</h3>
+                    <p style="color: var(--text-secondary);">Excellence in Education, Sports, and Campus Life.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="blog.html">Blog</a></li>
+                        <li><a href="live-scores.html">Live Scores</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Partner Universities</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://www.mockpartner1.com" target="_blank" rel="noopener">🎓 Partner University 1</a></li>
+                        <li><a href="https://www.mockpartner2.com" target="_blank" rel="noopener">🏛️ Partner University 2</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2026 Mock University. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="src/config/config.js"></script>
+    <script src="src/scripts/main.js"></script>
+    <script src="src/scripts/fixtures.js"></script>
+</body>
+</html>

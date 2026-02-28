@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="League tables and cup standings from Mock University sports competitions">
+    <title>Standings | Mock University</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="src/styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .standings-hero {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: var(--text-inverse);
+            padding: 3rem 0;
+            text-align: center;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+            overflow-x: auto;
+        }
+        
+        .tab {
+            padding: 1rem 2rem;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+        }
+        
+        .tab:hover {
+            color: var(--primary-color);
+        }
+        
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .competition-selector {
+            margin-bottom: 2rem;
+        }
+        
+        .standings-table-wrapper {
+            margin-bottom: 2rem;
+        }
+        
+        .standings-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .standings-title h3 {
+            margin: 0;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+        
+        .standings-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--bg-card);
+        }
+        
+        .standings-table thead {
+            background-color: var(--bg-secondary);
+        }
+        
+        .standings-table th {
+            padding: 1rem 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            white-space: nowrap;
+        }
+        
+        .standings-table th.center {
+            text-align: center;
+        }
+        
+        .standings-table td {
+            padding: 1rem 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-secondary);
+        }
+        
+        .standings-table td.center {
+            text-align: center;
+        }
+        
+        .standings-table tbody tr:hover {
+            background-color: var(--bg-card-hover);
+        }
+        
+        .standings-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .position {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .team-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .team-logo-tiny {
+            width: 30px;
+            height: 30px;
+            background-color: var(--bg-tertiary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .team-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .form {
+            display: flex;
+            gap: 0.25rem;
+        }
+        
+        .form-result {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: white;
+        }
+        
+        .form-result.W {
+            background-color: var(--color-win);
+        }
+        
+        .form-result.D {
+            background-color: var(--color-draw);
+        }
+        
+        .form-result.L {
+            background-color: var(--color-loss);
+        }
+        
+        .cup-groups {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        }
+        
+        .group-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+        
+        .group-header {
+            background-color: var(--primary-color);
+            color: var(--text-inverse);
+            padding: 1rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .standings-table th,
+            .standings-table td {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.875rem;
+            }
+            
+            .team-cell {
+                gap: 0.5rem;
+            }
+            
+            .team-name {
+                font-size: 0.875rem;
+            }
+            
+            .form {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div class="logo-icon">🎓</div>
+                    <span>Mock University</span>
+                </a>
+                
+                <nav class="nav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="blog.html" class="nav-link">Blog</a>
+                    <a href="live-scores.html" class="nav-link">Live Scores</a>
+                    <a href="fixtures.html" class="nav-link">Fixtures</a>
+                    <a href="standings.html" class="nav-link active">Standings</a>
+                    <a href="contact.html" class="nav-link">Contact</a>
+                </nav>
+                
+                <div class="header-actions">
+                    <button class="theme-toggle" aria-label="Toggle theme">🌙</button>
+                    <button class="mobile-menu-btn" aria-label="Toggle mobile menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="mobile-menu">
+        <nav class="mobile-nav">
+            <a href="index.html" class="mobile-nav-link">Home</a>
+            <a href="blog.html" class="mobile-nav-link">Blog</a>
+            <a href="live-scores.html" class="mobile-nav-link">Live Scores</a>
+            <a href="fixtures.html" class="mobile-nav-link">Fixtures</a>
+            <a href="standings.html" class="mobile-nav-link active">Standings</a>
+            <a href="contact.html" class="mobile-nav-link">Contact</a>
+        </nav>
+    </div>
+    
+    <div class="standings-hero">
+        <div class="container">
+            <h1>Standings</h1>
+            <p>League tables and cup competition standings</p>
+        </div>
+    </div>
+    
+    <section class="section">
+        <div class="container">
+            <div class="tabs">
+                <button class="tab active" data-tab="leagues">League Tables</button>
+                <button class="tab" data-tab="cups">Cup Competitions</button>
+            </div>
+            
+            <!-- League Tables Tab -->
+            <div id="leagues-tab" class="tab-content active">
+                <div class="competition-selector">
+                    <label class="form-label">Select Competition</label>
+                    <select id="leagueSelector" class="form-select" style="max-width: 400px;">
+                        <option value="">Loading competitions...</option>
+                    </select>
+                </div>
+                
+                <div id="leagueStandings">
+                    <div class="flex-center">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cup Competitions Tab -->
+            <div id="cups-tab" class="tab-content">
+                <div class="competition-selector">
+                    <label class="form-label">Select Cup Competition</label>
+                    <select id="cupSelector" class="form-select" style="max-width: 400px;">
+                        <option value="">Loading competitions...</option>
+                    </select>
+                </div>
+                
+                <div id="cupStandings">
+                    <div class="flex-center">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mock University</h3>
+                    <p style="color: var(--text-secondary);">Excellence in Education, Sports, and Campus Life.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="blog.html">Blog</a></li>
+                        <li><a href="live-scores.html">Live Scores</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Partner Universities</h3>
+                    <ul class="footer-links">
+                        <li><a href="https://www.mockpartner1.com" target="_blank" rel="noopener">🎓 Partner University 1</a></li>
+                        <li><a href="https://www.mockpartner2.com" target="_blank" rel="noopener">🏛️ Partner University 2</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2026 Mock University. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="src/config/config.js"></script>
+    <script src="src/scripts/main.js"></script>
+    <script src="src/scripts/standings.js"></script>
+</body>
+</html>

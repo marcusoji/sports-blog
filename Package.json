@@ -1,0 +1,44 @@
+{
+  "name": "mockuniversity",
+  "version": "2.0.0",
+  "description": "World-class university website with secure admin panel, live sports scores, blog platform, and WhatsApp integration",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev",
+    "build": "echo 'Static site - no build step required'",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel",
+    "lint": "echo 'No linting configured yet'",
+    "test": "echo 'No tests configured yet'",
+    "env:pull": "vercel env pull",
+    "env:add": "vercel env add",
+    "logs": "vercel logs",
+    "clean": "rm -rf .vercel node_modules",
+    "setup": "npm install && vercel env pull"
+  },
+  "keywords": [
+    "university",
+    "sports",
+    "blog",
+    "live-scores",
+    "education",
+    "admin-panel",
+    "supabase",
+    "vercel",
+    "whatsapp"
+  ],
+  "author": "Mock University Team",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "devDependencies": {
+    "vercel": "^33.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+  
+}

@@ -1,0 +1,115 @@
+# Mock University - Git Ignore File
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment Variables (NEVER commit these!)
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+*.env
+
+# Vercel
+.vercel
+.vercel/*
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+tmp/
+temp/
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+.jest/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Local configuration (use config.js template instead)
+# Uncomment if you want to keep config.js out of git
+# src/config/config.js
+
+# Database dumps
+*.sql.gz
+*.dump
+backups/
+
+# Sensitive files
+private/
+secrets/
+*.pem
+*.key
+*.cert
+
+# Development
+.devcontainer/
+.docker/
+
+# macOS
+**/.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# Linux
+*~
+
+# Optional: Uncomment to ignore uploaded media (if using local storage)
+# uploads/
+# media/
+# public/uploads/
+
+# Optional: Uncomment to ignore admin build artifacts
+admin/dist/
+admin/build/
+.vercel/                
+src/config/config.js    
