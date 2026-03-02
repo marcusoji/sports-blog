@@ -23,9 +23,9 @@ class mockuniversity {
         if (typeof window.CONFIG !== 'undefined' && window.CONFIG.supabase) {
             try {
                 this.supabase = window.supabase ? window.supabase.createClient(
-    CONFIG.supabase.url,
-    CONFIG.supabase.anonKey
-) : null;
+                    CONFIG.supabase.url,
+                    CONFIG.supabase.anonKey
+                ) : null;
                 console.log('✅ Supabase initialized');
             } catch (error) {
                 console.error('❌ Supabase initialization failed:', error);
@@ -38,7 +38,6 @@ class mockuniversity {
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) return savedTheme;
         
-        // Detect system preference
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             return 'dark';
         }
@@ -118,32 +117,27 @@ class mockuniversity {
 
     // Event Listeners Setup
     setupEventListeners() {
-        // Theme toggle
         const themeToggle = document.querySelector('.theme-toggle');
         if (themeToggle) {
             themeToggle.addEventListener('click', () => this.toggleTheme());
         }
 
-        // Mobile menu toggle
         const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
         if (mobileMenuBtn) {
             mobileMenuBtn.addEventListener('click', () => this.toggleMobileMenu());
         }
 
-        // Close mobile menu on link click
         const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
         mobileNavLinks.forEach(link => {
             link.addEventListener('click', () => this.closeMobileMenu());
         });
 
-        // Close mobile menu on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 this.closeMobileMenu();
             }
         });
 
-        // Smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -153,6 +147,19 @@ class mockuniversity {
                 }
             });
         });
+    }
+
+    // --- Time Calculation Helper ---
+    calculateMatchTime(matchDate) {
+        if (!matchDate) return 0;
+        const now = new Date();
+        const startTime = new Date(matchDate);
+        const elapsedMs = now - startTime;
+        const elapsedMinutes = Math.floor(elapsedMs / 60000);
+        
+        // Prevent showing negative time if clock is slightly off
+        // Cap at 100 for matches with heavy injury time if desired
+        return Math.max(0, elapsedMinutes);
     }
 
     // Real-time Live Scores
@@ -179,45 +186,48 @@ class mockuniversity {
         }
     }
 
-    renderLiveScores(matches = [], containerId) { // Added default value = []
-    const container = document.getElementById(containerId);
-    if (!container) return;
+    renderLiveScores(matches = [], containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
 
-    if (!matches || matches.length === 0) { // Added null check
-        container.innerHTML = '<p class="text-center text-secondary">No live matches at the moment</p>';
-        return;
-    }
+        if (!matches || matches.length === 0) {
+            container.innerHTML = '<p class="text-center text-secondary">No live matches at the moment</p>';
+            return;
+        }
 
-        const html = matches.map(match => `
-            <div class="match-card" data-match-id="${match.id}">
-                <div class="match-header">
-                    <span class="match-competition">${match.competition.name}</span>
-                    <span class="match-status live">
-                        <span class="status-dot"></span>
-                        LIVE ${match.match_time}'
-                    </span>
-                </div>
-                <div class="match-teams">
-                    <div class="team">
-                        <span class="team-name">${match.home_team.name}</span>
-                        <span class="team-score">${match.home_score}</span>
+        const html = matches.map(match => {
+            // UPDATED: Calculate the time dynamically based on kickoff date
+            const currentTime = this.calculateMatchTime(match.match_date);
+            
+            return `
+                <div class="match-card" data-match-id="${match.id}">
+                    <div class="match-header">
+                        <span class="match-competition">${match.competition.name}</span>
+                        <span class="match-status live">
+                            <span class="status-dot"></span>
+                            LIVE ${currentTime}'
+                        </span>
                     </div>
-                    <div class="team">
-                        <span class="team-name">${match.away_team.name}</span>
-                        <span class="team-score">${match.away_score}</span>
+                    <div class="match-teams">
+                        <div class="team">
+                            <span class="team-name">${match.home_team.name}</span>
+                            <span class="team-score">${match.home_score}</span>
+                        </div>
+                        <div class="team">
+                            <span class="team-name">${match.away_team.name}</span>
+                            <span class="team-score">${match.away_score}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         container.innerHTML = html;
     }
 
     startLiveScoreUpdates(interval = 10000) {
-        // Initial fetch
         this.fetchLiveScores();
 
-        // Set up interval for updates
         if (this.liveScoreInterval) {
             clearInterval(this.liveScoreInterval);
         }
@@ -226,7 +236,6 @@ class mockuniversity {
             this.fetchLiveScores();
         }, interval);
 
-        // Subscribe to real-time updates if available
         if (this.supabase && CONFIG.realtime.enableSupabaseRealtime) {
             this.subscribeToMatchUpdates();
         }
@@ -332,8 +341,8 @@ class mockuniversity {
     }
 
     async renderFixtures(containerId, limit = 5) {
-    const fixtures = await this.fetchUpcomingFixtures(limit) || []; // Force array
-    const container = document.getElementById(containerId);
+        const fixtures = await this.fetchUpcomingFixtures(limit) || [];
+        const container = document.getElementById(containerId);
         
         if (!container) return;
 
@@ -366,6 +375,7 @@ class mockuniversity {
 
     // Utility Functions
     escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
@@ -412,8 +422,6 @@ class mockuniversity {
     // SEO Helper
     updatePageMeta(title, description, image, type = 'website') {
         document.title = title;
-        
-        // Update or create meta tags
         this.updateMetaTag('name', 'description', description);
         this.updateMetaTag('property', 'og:title', title);
         this.updateMetaTag('property', 'og:description', description);
@@ -443,33 +451,30 @@ class mockuniversity {
     generateStructuredData(type, data) {
         const script = document.createElement('script');
         script.type = 'application/ld+json';
-        
         const structuredData = {
             "@context": "https://schema.org",
             "@type": type,
             ...data
         };
-        
         script.textContent = JSON.stringify(structuredData);
-        
-        // Remove existing structured data
         const existing = document.querySelector('script[type="application/ld+json"]');
         if (existing) {
             existing.remove();
         }
-        
         document.head.appendChild(script);
     }
 }
 
-// Replace the very bottom of main.js with this:
 document.addEventListener('DOMContentLoaded', () => {
-    // We create the instance and put it on the 'window' so index.html can see it
     window.mockUniversity = new mockuniversity(); 
     console.log('🎓 Mock University website initialized');
+    
+    // Auto-start live scores if the element exists on page
+    if (document.getElementById('live-scores')) {
+        window.mockUniversity.startLiveScoreUpdates();
+    }
 });
 
-// Export for use in other scripts
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = mockuniversity;
 }

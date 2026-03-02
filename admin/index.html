@@ -266,7 +266,28 @@
     } catch (error) {
         console.error('Login error:', error.message);
         this.showAlert(error.message);
-    } finally {
+    // Track failed attempts
+                    this.attempts = parseInt(localStorage.getItem('admin_attempts') || '0') + 1;
+                    localStorage.setItem('admin_attempts', this.attempts.toString());
+                    
+                    if (this.attempts >= this.maxAttempts) {
+                        // Lock out user
+                        const lockoutUntil = Date.now() + this.lockoutTime;
+                        localStorage.setItem('admin_lockout', lockoutUntil.toString());
+                        this.showAlert(`Too many failed attempts. Account locked for 15 minutes.`);
+                        this.form.querySelector('button[type="submit"]').disabled = true;
+                        
+                        setTimeout(() => {
+                            localStorage.removeItem('admin_lockout');
+                            localStorage.removeItem('admin_attempts');
+                            this.form.querySelector('button[type="submit"]').disabled = false;
+                            this.hideAlert();
+                        }, this.lockoutTime);
+                    } else {
+                        const remaining = this.maxAttempts - this.attempts;
+                        this.showAlert(`Invalid credentials. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`);
+                    }
+                }finally {
         this.setLoadingState(false);
     }
 }

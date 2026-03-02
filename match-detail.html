@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Details | Mock University</title>
+    <link rel="stylesheet" href="/src/styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .match-hero{background:linear-gradient(135deg,var(--primary-color),var(--primary-dark));color:white;padding:2rem 0;}
+        .match-score-large{display:grid;grid-template-columns:1fr auto 1fr;gap:2rem;align-items:center;text-align:center;padding:2rem 0;}
+        .team-large{display:flex;flex-direction:column;align-items:center;gap:1rem;}
+        .team-logo-large{width:100px;height:100px;background:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;}
+        .score-large{font-size:4rem;font-weight:700;}
+        .stats-grid{display:grid;gap:1.5rem;margin-top:2rem;}
+        .stat-row{display:grid;grid-template-columns:2fr 1fr 2fr;gap:1rem;align-items:center;padding:1rem;background:var(--bg-card);border-radius:var(--radius-md);}
+        .stat-bar{height:8px;background:var(--bg-secondary);border-radius:4px;position:relative;overflow:hidden;}
+        .stat-fill{height:100%;background:var(--primary-color);transition:width 0.3s;}
+        .events-timeline{display:flex;flex-direction:column;gap:1rem;}
+        .event-item{display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--bg-card);border-radius:var(--radius-md);}
+        .event-time{font-weight:700;color:var(--primary-color);min-width:50px;}
+        .event-icon{font-size:1.5rem;}
+        .lineup-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;}
+        .lineup-team{background:var(--bg-card);padding:1.5rem;border-radius:var(--radius-lg);}
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo"><div class="logo-icon">🎓</div><span>Mock University</span></a>
+                <nav class="nav">
+                    <a href="index.html" class="nav-link">Home</a>
+                    <a href="live-scores.html" class="nav-link active">Live Scores</a>
+                    <a href="fixtures.html" class="nav-link">Fixtures</a>
+                    <a href="standings.html" class="nav-link">Standings</a>
+                </nav>
+                <button class="theme-toggle">🌙</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="match-hero">
+        <div class="container">
+            <div id="matchHeader"></div>
+        </div>
+    </div>
+
+    <section class="section">
+        <div class="container">
+            <div class="card" style="margin-bottom:2rem;">
+                <div style="display:flex;gap:1rem;margin-bottom:1.5rem;border-bottom:1px solid var(--border-color);padding-bottom:1rem;">
+                    <button class="btn" onclick="showTab('events')" id="btnEvents">⚽ Events</button>
+                    <button class="btn btn-secondary" onclick="showTab('stats')" id="btnStats">📊 Statistics</button>
+                    <button class="btn btn-secondary" onclick="showTab('lineup')" id="btnLineup">👥 Lineup</button>
+                </div>
+                <div id="tabContent"></div>
+            </div>
+        </div>
+    </section>
+
+    <script src="/src/config/config.js"></script>
+    <script src="/src/scripts/main.js"></script>
+    <script>
+        let matchData = null;
+        let supabaseClient = null;
+
+        async function init() {
+            if (typeof window.CONFIG !== 'undefined' && window.CONFIG.supabase) {
+                supabaseClient = supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
+            }
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const matchId = urlParams.get('id');
+            
+            if (!matchId) {
+                window.location.href = '/live-scores.html';
+                return;
+            }
+            
+            await loadMatchData(matchId);
+            showTab('events');
+            startAutoRefresh(matchId);
+        }
+
+        async function loadMatchData(matchId) {
+            try {
+                const { data: match, error } = await supabaseClient
+                    .from('matches')
+                    .select(`*,home_team:teams!matches_home_team_id_fkey(id,name,short_name,logo_url),away_team:teams!matches_away_team_id_fkey(id,name,short_name,logo_url),competition:competitions(id,name,type,level)`)
+                    .eq('id', matchId)
+                    .single();
+
+                if (error) throw error;
+
+                const { data: events } = await supabaseClient
+                    .from('match_events')
+                    .select('*')
+                    .eq('match_id', matchId)
+                    .order('event_minute', { ascending: false });
+
+                match.events = events || [];
+                matchData = match;
+                renderMatchHeader();
+            } catch (error) {
+                console.error('Error loading match:', error);
+                document.getElementById('matchHeader').innerHTML = '<p>Error loading match details</p>';
+            }
+        }
+
+        function calculateMatchTime() {
+            if (!matchData || matchData.status !== 'live') return matchData.match_time || 0;
+            const now = new Date();
+            const startTime = new Date(matchData.match_date);
+            const elapsedMs = now - startTime;
+            const elapsedMinutes = Math.floor(elapsedMs / 60000);
+            return Math.min(elapsedMinutes, (matchData.match_duration || 90) + 10);
+        }
+
+        function renderMatchHeader() {
+            const currentTime = calculateMatchTime();
+            const duration = matchData.match_duration || 90;
+            const isLive = matchData.status === 'live';
+            
+            document.getElementById('matchHeader').innerHTML = `
+                <div style="text-align:center;margin-bottom:1rem;">
+                    <h3>${matchData.competition.name}</h3>
+                    ${isLive ? `<div class="badge" style="background:var(--color-live);color:white;display:inline-block;padding:0.5rem 1rem;border-radius:var(--radius-full);margin-top:0.5rem;">⚪ LIVE ${currentTime}'</div>` : ''}
+                </div>
+                <div class="match-score-large">
+                    <div class="team-large">
+                        <div class="team-logo-large">${matchData.home_team.logo_url || '⚽'}</div>
+                        <h2>${matchData.home_team.name}</h2>
+                    </div>
+                    <div>
+                        <div class="score-large">${matchData.home_score || 0} : ${matchData.away_score || 0}</div>
+                        ${matchData.half_time_home_score !== null ? `<div style="margin-top:0.5rem;opacity:0.7;">HT: ${matchData.half_time_home_score} - ${matchData.half_time_away_score}</div>` : ''}
+                    </div>
+                    <div class="team-large">
+                        <div class="team-logo-large">${matchData.away_team.logo_url || '⚽'}</div>
+                        <h2>${matchData.away_team.name}</h2>
+                    </div>
+                </div>`;
+        }
+
+        function showTab(tab) {
+            ['btnEvents', 'btnStats', 'btnLineup'].forEach(id => {
+                document.getElementById(id).className = 'btn btn-secondary';
+            });
+            document.getElementById('btn' + tab.charAt(0).toUpperCase() + tab.slice(1)).className = 'btn';
+            
+            if (tab === 'events') renderEvents();
+            else if (tab === 'stats') renderStats();
+            else if (tab === 'lineup') renderLineup();
+        }
+
+        function renderEvents() {
+            const goals = matchData.events.filter(e => e.event_type === 'goal');
+            const cards = matchData.events.filter(e => e.event_type === 'yellow_card' || e.event_type === 'red_card');
+            
+            document.getElementById('tabContent').innerHTML = `
+                <div class="events-timeline">
+                    ${matchData.events.length === 0 ? '<p style="text-align:center;color:var(--text-secondary);">No events recorded yet</p>' : ''}
+                    ${matchData.events.map(event => `
+                        <div class="event-item">
+                            <div class="event-time">${event.event_minute}'</div>
+                            <div class="event-icon">${event.event_type === 'goal' ? '⚽' : event.event_type === 'yellow_card' ? '🟨' : event.event_type === 'red_card' ? '🟥' : '↔️'}</div>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;">${event.player_name}</div>
+                                <div style="font-size:0.875rem;color:var(--text-secondary);">${event.event_type.replace('_', ' ').toUpperCase()}</div>
+                                ${event.details && event.details.assist ? `<div style="font-size:0.875rem;color:var(--text-tertiary);">Assist: ${event.details.assist}</div>` : ''}
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:0.875rem;color:var(--text-secondary);">${event.team_id === matchData.home_team.id ? matchData.home_team.short_name : matchData.away_team.short_name}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`;
+        }
+
+        function renderStats() {
+            const homeGoals = matchData.events.filter(e => e.event_type === 'goal' && e.team_id === matchData.home_team.id).length;
+            const awayGoals = matchData.events.filter(e => e.event_type === 'goal' && e.team_id === matchData.away_team.id).length;
+            const homeCards = matchData.events.filter(e => (e.event_type === 'yellow_card' || e.event_type === 'red_card') && e.team_id === matchData.home_team.id).length;
+            const awayCards = matchData.events.filter(e => (e.event_type === 'yellow_card' || e.event_type === 'red_card') && e.team_id === matchData.away_team.id).length;
+            
+            const stats = [
+                { label: 'Goals', home: homeGoals, away: awayGoals },
+                { label: 'Cards', home: homeCards, away: awayCards },
+                { label: 'Possession', home: 55, away: 45 },
+                { label: 'Shots', home: 12, away: 8 },
+                { label: 'On Target', home: 6, away: 4 },
+                { label: 'Corners', home: 7, away: 5 }
+            ];
+            
+            document.getElementById('tabContent').innerHTML = `
+                <div class="stats-grid">
+                    ${stats.map(stat => {
+                        const total = stat.home + stat.away;
+                        const homePercent = total > 0 ? (stat.home / total) * 100 : 50;
+                        const awayPercent = total > 0 ? (stat.away / total) * 100 : 50;
+                        return `
+                            <div class="stat-row">
+                                <div style="text-align:right;font-weight:600;">${stat.home}</div>
+                                <div style="text-align:center;">
+                                    <div style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.5rem;">${stat.label}</div>
+                                    <div class="stat-bar">
+                                        <div class="stat-fill" style="width:${homePercent}%;"></div>
+                                    </div>
+                                </div>
+                                <div style="text-align:left;font-weight:600;">${stat.away}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>`;
+        }
+
+        function renderLineup() {
+            document.getElementById('tabContent').innerHTML = `
+                <div class="lineup-grid">
+                    <div class="lineup-team">
+                        <h3 style="margin-bottom:1rem;">${matchData.home_team.name}</h3>
+                        <p style="color:var(--text-secondary);">Lineup information will be added by admin</p>
+                    </div>
+                    <div class="lineup-team">
+                        <h3 style="margin-bottom:1rem;">${matchData.away_team.name}</h3>
+                        <p style="color:var(--text-secondary);">Lineup information will be added by admin</p>
+                    </div>
+                </div>`;
+        }
+
+        function startAutoRefresh(matchId) {
+            setInterval(() => {
+                loadMatchData(matchId);
+                renderMatchHeader();
+                const activeTab = document.querySelector('.btn:not(.btn-secondary)').id.replace('btn', '').toLowerCase();
+                showTab(activeTab);
+            }, 10000);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

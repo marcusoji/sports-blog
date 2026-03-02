@@ -194,12 +194,12 @@
                 </a>
                 
                 <nav class="nav">
-                    <a href="index.html" class="nav-link">Home</a>
-                    <a href="blog.html" class="nav-link">Blog</a>
-                    <a href="live-scores.html" class="nav-link">Live Scores</a>
-                    <a href="fixtures.html" class="nav-link active">Fixtures</a>
-                    <a href="standings.html" class="nav-link">Standings</a>
-                    <a href="contact.html" class="nav-link">Contact</a>
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/blog.html" class="nav-link">Blog</a>
+                    <a href="/live-scores.html" class="nav-link">Live Scores</a>
+                    <a href="/fixtures.html" class="nav-link active">Fixtures</a>
+                    <a href="/standings.html" class="nav-link">Standings</a>
+                    <a href="/contact.html" class="nav-link">Contact</a>
                 </nav>
                 
                 <div class="header-actions">
@@ -218,12 +218,12 @@
     
     <div class="mobile-menu">
         <nav class="mobile-nav">
-            <a href="index.html" class="mobile-nav-link">Home</a>
-            <a href="blog.html" class="mobile-nav-link">Blog</a>
-            <a href="live-scores.html" class="mobile-nav-link">Live Scores</a>
-            <a href="fixtures.html" class="mobile-nav-link active">Fixtures</a>
-            <a href="standings.html" class="mobile-nav-link">Standings</a>
-            <a href="contact.html" class="mobile-nav-link">Contact</a>
+            <a href="/" class="mobile-nav-link">Home</a>
+            <a href="/blog.html" class="mobile-nav-link">Blog</a>
+            <a href="/live-scores.html" class="mobile-nav-link">Live Scores</a>
+            <a href="/fixtures.html" class="mobile-nav-link active">Fixtures</a>
+            <a href="/standings.html" class="mobile-nav-link">Standings</a>
+            <a href="/contact.html" class="mobile-nav-link">Contact</a>
         </nav>
     </div>
     
@@ -236,43 +236,84 @@
     
     <section class="section">
         <div class="container">
-            <div class="filters">
-                <div class="filter-group">
-                    <label class="form-label">Competition Type</label>
-                    <select id="competitionType" class="form-select">
-                        <option value="">All Competitions</option>
-                        <option value="faculty">Faculty</option>
-                        <option value="department">Department</option>
-                        <option value="custom">Custom</option>
-                    </select>
+            <!-- Tab Navigation -->
+            <div style="display:flex;gap:1rem;margin-bottom:2rem;border-bottom:2px solid var(--border-color);padding-bottom:1rem;">
+                <button class="btn btn-primary" onclick="showTab('fixtures')" id="btnFixtures">📅 Fixtures</button>
+                <button class="btn btn-secondary" onclick="showTab('results')" id="btnResults">📊 Results</button>
+            </div>
+            
+            <!-- Fixtures Tab -->
+            <div id="fixturesTab">
+                <div class="filters">
+                    <div class="filter-group">
+                        <label class="form-label">Competition Type</label>
+                        <select id="competitionType" class="form-select">
+                            <option value="">All Competitions</option>
+                            <option value="faculty">Faculty</option>
+                            <option value="department">Department</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="form-label">Level</label>
+                        <select id="levelFilter" class="form-select">
+                            <option value="">All Levels</option>
+                            <option value="level 1">Level 1</option>
+                            <option value="level 2">Level 2</option>
+                            <option value="level 3">Level 3</option>
+                            <option value="level 4">Level 4</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="form-label">Time Period</label>
+                        <select id="timePeriod" class="form-select">
+                            <option value="all">All Upcoming</option>
+                            <option value="today">Today</option>
+                            <option value="tomorrow">Tomorrow</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                    </div>
                 </div>
                 
-                <div class="filter-group">
-                    <label class="form-label">Level</label>
-                    <select id="levelFilter" class="form-select">
-                        <option value="">All Levels</option>
-                        <option value="level 1">Level 1</option>
-                        <option value="level 2">Level 2</option>
-                        <option value="level 3">Level 3</option>
-                        <option value="level 4">Level 4</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label class="form-label">Time Period</label>
-                    <select id="timePeriod" class="form-select">
-                        <option value="all">All Upcoming</option>
-                        <option value="today">Today</option>
-                        <option value="tomorrow">Tomorrow</option>
-                        <option value="week">This Week</option>
-                        <option value="month">This Month</option>
-                    </select>
+                <div id="fixturesByDate">
+                    <div class="flex-center">
+                        <div class="spinner"></div>
+                    </div>
                 </div>
             </div>
             
-            <div id="fixturesByDate">
-                <div class="flex-center">
-                    <div class="spinner"></div>
+            <!-- Results Tab -->
+            <div id="resultsTab" style="display:none;">
+                <div class="filters">
+                    <div class="filter-group">
+                        <label class="form-label">Competition Type</label>
+                        <select id="resultCompType" class="form-select">
+                            <option value="">All Competitions</option>
+                            <option value="faculty">Faculty</option>
+                            <option value="department">Department</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label class="form-label">Level</label>
+                        <select id="resultLevel" class="form-select">
+                            <option value="">All Levels</option>
+                            <option value="level 1">Level 1</option>
+                            <option value="level 2">Level 2</option>
+                            <option value="level 3">Level 3</option>
+                            <option value="level 4">Level 4</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="resultsList">
+                    <div class="flex-center">
+                        <div class="spinner"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -289,10 +330,10 @@
                 <div class="footer-section">
                     <h3>Quick Links</h3>
                     <ul class="footer-links">
-                        <li><a href="index.html">Home</a></li>
-                        <li><a href="blog.html">Blog</a></li>
-                        <li><a href="live-scores.html">Live Scores</a></li>
-                        <li><a href="contact.html">Contact</a></li>
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/blog.html">Blog</a></li>
+                        <li><a href="/live-scores.html">Live Scores</a></li>
+                        <li><a href="/contact.html">Contact</a></li>
                     </ul>
                 </div>
                 
@@ -311,8 +352,54 @@
         </div>
     </footer>
     
-    <script src="src/config/config.js"></script>
-    <script src="src/scripts/main.js"></script>
-    <script src="src/scripts/fixtures.js"></script>
+    <script src="/src/config/config.js"></script>
+    <script src="/src/scripts/main.js"></script>
+    <script src="/src/scripts/fixtures.js"></script>
+    <script>
+        function showTab(tab) {
+            document.getElementById('btnFixtures').className = tab === 'fixtures' ? 'btn btn-primary' : 'btn btn-secondary';
+            document.getElementById('btnResults').className = tab === 'results' ? 'btn btn-primary' : 'btn btn-secondary';
+            document.getElementById('fixturesTab').style.display = tab === 'fixtures' ? 'block' : 'none';
+            document.getElementById('resultsTab').style.display = tab === 'results' ? 'block' : 'none';
+            if (tab === 'results') loadResults();
+        }
+        
+        async function loadResults() {
+            const container = document.getElementById('resultsList');
+            container.innerHTML = '<div class="flex-center"><div class="spinner"></div></div>';
+            try {
+                const supabase = window.fixturesManager?.supabase;
+                if (!supabase) return;
+                const compType = document.getElementById('resultCompType').value;
+                const level = document.getElementById('resultLevel').value;
+                let query = supabase.from('matches').select(`*,home_team:teams!matches_home_team_id_fkey(id,name,short_name,logo_url),away_team:teams!matches_away_team_id_fkey(id,name,short_name,logo_url),competition:competitions(id,name,type,level)`).eq('status','finished').order('match_date',{ascending:false}).limit(50);
+                const {data:matches,error} = await query;
+                if (error) throw error;
+                let filtered = matches || [];
+                if (compType) filtered = filtered.filter(m => m.competition.type === compType);
+                if (level) filtered = filtered.filter(m => m.competition.level === level);
+                if (filtered.length === 0) { container.innerHTML = '<div class="card" style="padding:2rem;text-align:center;"><p>No results found</p></div>'; return; }
+                const grouped = {};
+                filtered.forEach(match => { const date = new Date(match.match_date).toLocaleDateString(); if (!grouped[date]) grouped[date] = []; grouped[date].push(match); });
+                let html = '';
+                Object.keys(grouped).forEach(date => {
+                    html += `<div class="date-group"><div class="date-header"><h3>${date}</h3><span class="date-badge">${grouped[date].length} match${grouped[date].length!==1?'es':''}</span></div><div class="fixtures-list">${grouped[date].map(match => `
+                        <div class="fixture-card" style="cursor:pointer;" onclick="window.location.href='/match-detail.html?id=${match.id}'">
+                            <div class="fixture-header"><span class="competition-badge">${match.competition.name}</span><span class="time-badge" style="background:var(--color-finished);">FINISHED</span></div>
+                            <div class="fixture-teams">
+                                <div class="fixture-team"><div class="team-logo-small">${match.home_team.logo_url||'⚽'}</div><div class="team-name-large">${match.home_team.name}</div></div>
+                                <div style="text-align:center;font-size:2rem;font-weight:700;">${match.home_score} - ${match.away_score}</div>
+                                <div class="fixture-team away"><div class="team-logo-small">${match.away_team.logo_url||'⚽'}</div><div class="team-name-large">${match.away_team.name}</div></div>
+                            </div>
+                            <div class="fixture-details"><span>📅 ${new Date(match.match_date).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</span>${match.venue?`<span>📍 ${match.venue}</span>`:''}<span style="color:var(--primary-color);">👆 Tap for details</span></div>
+                        </div>
+                    `).join('')}</div></div>`;
+                });
+                container.innerHTML = html;
+            } catch (error) { console.error('Error loading results:',error); container.innerHTML = '<p style="color:var(--color-live);">Error loading results</p>'; }
+        }
+        document.getElementById('resultCompType').addEventListener('change', loadResults);
+        document.getElementById('resultLevel').addEventListener('change', loadResults);
+    </script>
 </body>
 </html>
