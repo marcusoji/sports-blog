@@ -10,11 +10,12 @@ class AdminDashboard {
     }
 
     async init() {
-    // Check if another script (like main.js) already initialized supabase
-    if (!this.supabase) {
-        if (typeof window.CONFIG !== 'undefined' && window.CONFIG.supabase) {
-            this.supabase = supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
-        }
+    // Check if window already has a supabase client to avoid storage conflicts
+    if (window.supabaseClient) {
+        this.supabase = window.supabaseClient;
+    } else if (typeof window.CONFIG !== 'undefined' && window.CONFIG.supabase) {
+        this.supabase = supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
+        window.supabaseClient = this.supabase; // Save it globally
     }
         await this.checkAuth();
         this.setupNavigation();
@@ -355,7 +356,8 @@ this.timerInterval = setInterval(() => {
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
     <button class="btn btn-primary" onclick="adminDashboard.addGoal('${matchId}')">⚽ Goal</button>
     <button class="btn" onclick="adminDashboard.addCard('${matchId}')">🟨 Card</button>
-    
+    // Inside the modalBody HTML string in manageMatch(matchId)
+<button class="btn btn-secondary" onclick="adminDashboard.editLineups('${matchId}')">📋 Edit Lineups</button>
     ${match.status === 'live' ? `
         <button class="btn btn-secondary" onclick="adminDashboard.setHalfTime('${matchId}')">⏸️ End 1st Half</button>
     ` : ''}
@@ -375,8 +377,88 @@ this.timerInterval = setInterval(() => {
             </div>
         `);
     }
+    async editLineups(matchId) {
+    const { data: match, error } = await this.supabase
+        .from('matches')
+        .select(`
+            home_lineup, 
+            away_lineup, 
+            home_formation, 
+            away_formation,
+            home_team:teams!matches_home_team_id_fkey(name), 
+            away_team:teams!matches_away_team_id_fkey(name)
+        `)
+        .eq('id', matchId)
+        .single();
 
-    async addGoal(matchId) {
+    if (error) return alert("Error loading lineups");
+
+    // --- DEFINE THE MISSING HELPER HERE ---
+    const formationOptions = ['4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '5-3-2', '4-1-4-1'];
+    
+    // This creates the <option> tags for the dropdown
+    const generateOptions = (selected) => formationOptions.map(f => 
+        `<option value="${f}" ${selected === f ? 'selected' : ''}>${f}</option>`
+    ).join('');
+
+    this.showModal('Edit Match Lineups & Formations', `
+        <form id="lineupForm" class="admin-form">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <h4 style="color: var(--primary-color);">${match.home_team.name}</h4>
+                    <div class="form-group">
+                        <label>Formation</label>
+                        <select id="homeFormation" class="form-control" style="width:100%; padding:8px; margin-bottom:10px;">
+                            ${generateOptions(match.home_formation || '4-3-3')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Players (Comma separated)</label>
+                        <textarea id="homeLineup" rows="8" class="form-control" style="width:100%;" placeholder="Player 1, Player 2...">${match.home_lineup || ''}</textarea>
+                    </div>
+                </div>
+                <div>
+                    <h4 style="color: var(--primary-color);">${match.away_team.name}</h4>
+                    <div class="form-group">
+                        <label>Formation</label>
+                        <select id="awayFormation" class="form-control" style="width:100%; padding:8px; margin-bottom:10px;">
+                            ${generateOptions(match.away_formation || '4-3-3')}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Players (Comma separated)</label>
+                        <textarea id="awayLineup" rows="8" class="form-control" style="width:100%;" placeholder="Player 1, Player 2...">${match.away_lineup || ''}</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 15px; text-align: right;">
+                <button type="button" class="btn btn-secondary" onclick="adminDashboard.closeModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="adminDashboard.saveLineups('${matchId}')">Save Changes</button>
+            </div>
+        </form>
+    `);
+}
+
+async saveLineups(matchId) {
+    const data = {
+        home_lineup: document.getElementById('homeLineup').value,
+        away_lineup: document.getElementById('awayLineup').value,
+        home_formation: document.getElementById('homeFormation').value,
+        away_formation: document.getElementById('awayFormation').value
+    };
+
+    const { error } = await this.supabase
+        .from('matches')
+        .update(data)
+        .eq('id', matchId);
+
+    if (error) {
+        alert("Error saving: " + error.message);
+    } else {
+        alert("Lineups and Formations updated successfully!");
+        this.closeModal();
+    }
+}    async addGoal(matchId) {
         const { data: match } = await this.supabase.from('matches').select(`*,home_team:teams!matches_home_team_id_fkey(id,name),away_team:teams!matches_away_team_id_fkey(id,name)`).eq('id', matchId).single();
         
         this.showModal('Add Goal', `

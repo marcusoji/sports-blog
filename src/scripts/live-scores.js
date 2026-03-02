@@ -197,14 +197,7 @@ const { data: matches, error: matchError } = await this.supabase
                     <div class="half-time-score">HT: ${match.half_time_home_score} - ${match.half_time_away_score}</div>
                 ` : ''}
                 
-                ${this.isAdmin ? `
-                    <div class="admin-controls" onclick="event.stopPropagation();">
-                        <button class="btn-small btn-primary" onclick="liveScores.quickGoal('${match.id}','home')">⚽ Home</button>
-                        <button class="btn-small btn-primary" onclick="liveScores.quickGoal('${match.id}','away')">⚽ Away</button>
-                        <button class="btn-small btn-secondary" onclick="liveScores.endMatch('${match.id}')">🏁 End</button>
-                    </div>
-                ` : ''}
-            </div>`;
+              </div>`;
     }
 
     addGlobalControls() {

@@ -216,7 +216,7 @@ async fetchLiveScores(containerId = 'live-scores') {
                             <span class="team-name">${match.home_team.name}</span>
                             <div class="scorers-list">${homeScorers}</div>
                         </div>
-                        <div class="score-col">${match.home_score} - ${match.away_score}</div>
+                       <div class="score-col">${match.home_score || 0} - ${match.away_score || 0}</div>
                         <div class="team-col">
                             <img src="${match.away_team.logo_url || 'assets/default.png'}" class="team-logo">
                             <span class="team-name">${match.away_team.name}</span>

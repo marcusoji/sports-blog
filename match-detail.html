@@ -215,19 +215,62 @@
                 </div>`;
         }
 
-        function renderLineup() {
-            document.getElementById('tabContent').innerHTML = `
-                <div class="lineup-grid">
-                    <div class="lineup-team">
-                        <h3 style="margin-bottom:1rem;">${matchData.home_team.name}</h3>
-                        <p style="color:var(--text-secondary);">Lineup information will be added by admin</p>
-                    </div>
-                    <div class="lineup-team">
-                        <h3 style="margin-bottom:1rem;">${matchData.away_team.name}</h3>
-                        <p style="color:var(--text-secondary);">Lineup information will be added by admin</p>
-                    </div>
-                </div>`;
-        }
+       // Helper function to turn "Player 1, Player 2" into a list
+const formatList = (str) => {
+    if (!str || str.trim() === "") return '<li>Lineup not yet announced</li>';
+    return str.split(',').map(name => `<li>${name.trim()}</li>`).join('');
+};
+
+// Helper to generate visual dots on the pitch
+function generatePlayerDots(lineupStr, side) {
+    if (!lineupStr || lineupStr.trim() === "") return '';
+    const players = lineupStr.split(',');
+    // We only show the first 11 players on the pitch
+    return players.slice(0, 11).map((name, index) => {
+        return `
+            <div class="player-dot">
+                <div class="dot-icon">${index + 1}</div>
+                <span class="dot-name">${name.trim().split(' ').pop()}</span>
+            </div>`;
+    }).join('');
+}
+
+function renderLineup() {
+    const container = document.getElementById('tabContent');
+    
+    container.innerHTML = `
+        <div class="lineup-container">
+            <div class="formation-header" style="display: flex; justify-content: space-between; padding: 10px; background: var(--bg-secondary); margin-bottom: 10px; border-radius: 8px;">
+                <span style="font-weight: bold; color: var(--primary-color);">${matchData.home_formation || 'TBA'}</span>
+                <span style="font-size: 0.8rem; color: var(--text-tertiary);">FORMATION</span>
+                <span style="font-weight: bold; color: var(--primary-color);">${matchData.away_formation || 'TBA'}</span>
+            </div>
+            
+            <div class="football-pitch">
+                <div class="pitch-half home-half">
+                    ${generatePlayerDots(matchData.home_lineup, 'home')}
+                </div>
+                <div class="pitch-half away-half">
+                    ${generatePlayerDots(matchData.away_lineup, 'away')}
+                </div>
+            </div>
+
+            <div class="lineup-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+                <div class="lineup-team">
+                    <h3 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem;">${matchData.home_team.name}</h3>
+                    <ul class="lineup-list" style="list-style: none; padding: 1rem 0;">
+                        ${formatList(matchData.home_lineup)}
+                    </ul>
+                </div>
+                <div class="lineup-team" style="text-align: right;">
+                    <h3 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem;">${matchData.away_team.name}</h3>
+                    <ul class="lineup-list" style="list-style: none; padding: 1rem 0;">
+                        ${formatList(matchData.away_lineup)}
+                    </ul>
+                </div>
+            </div>
+        </div>`;
+}
 
         function startAutoRefresh(matchId) {
             setInterval(() => {
