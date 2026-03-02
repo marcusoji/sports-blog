@@ -47,18 +47,19 @@ class LiveScores {
         if (!this.supabase) return this.showError('Database connection not available');
         try {
             // Get live matches with events (goals, cards, etc.)
-            const { data: matches, error: matchError } = await this.supabase
-                .from('matches')
-                .select(`
-                    *,
-                    home_team:teams!matches_home_team_id_fkey(id, name, short_name, logo_url),
-                    away_team:teams!matches_away_team_id_fkey(id, name, short_name, logo_url),
-                    competition:competitions(id, name, type, level)
-                `)
-                .eq('status', 'live')
-                .order('match_date', { ascending: false });
-
-            if (matchError) throw matchError;
+           // Replace the query section in loadMatches() with this:
+const { data: matches, error: matchError } = await this.supabase
+    .from('matches')
+    .select(`
+        *,
+        home_team:teams!matches_home_team_id_fkey(id, name, short_name, logo_url),
+        away_team:teams!matches_away_team_id_fkey(id, name, short_name, logo_url),
+        competition:competitions(id, name, type, level)
+    `)
+    .or('status.eq.live,status.eq.ht') // This ensures HT matches don't disappear
+    .order('match_date', { ascending: false });            
+    
+      if (matchError) throw matchError;
 
             // For each match, get the events (goals, cards, etc.)
             for (const match of matches || []) {
@@ -84,27 +85,31 @@ class LiveScores {
     }
 
     calculateCurrentTime() {
-        // Calculate elapsed time based on match start time (PERSISTENT)
-        const now = new Date();
-        
-        this.matches.forEach(match => {
-            if (match.status === 'live' && match.match_date) {
-                const startTime = new Date(match.match_date);
-                const elapsedMs = now - startTime;
-                const elapsedMinutes = Math.floor(elapsedMs / 60000); // Convert to minutes
-                
-                const duration = match.match_duration || 90;
-                
-                // Calculate actual match time (can't exceed duration + extra time)
-                match.calculated_time = Math.min(elapsedMinutes, duration + 10); // Max 10 min extra time
-                
-                // Determine half
-                const halfTime = duration / 2;
-                match.current_half = match.calculated_time <= halfTime ? 1 : 2;
-                match.is_half_time = match.calculated_time === halfTime;
+    const now = new Date();
+    
+    this.matches.forEach(match => {
+        if (match.status === 'ht') {
+            match.display_time = "HT";
+            return;
+        }
+
+        if (match.status === 'live' && match.match_date) {
+            const startTime = new Date(match.match_date);
+            const elapsedMinutes = Math.floor((now - startTime) / 60000);
+            
+            // Logic to handle 45+ and 90+ just like a real livescore app
+            if (elapsedMinutes >= 45 && elapsedMinutes < 50 && !match.is_second_half) {
+                match.display_time = "45+";
+            } else if (elapsedMinutes >= 90) {
+                match.display_time = "90+";
+            } else {
+                match.display_time = Math.max(0, elapsedMinutes) + "'";
             }
-        });
-    }
+        } else {
+            match.display_time = match.status;
+        }
+    });
+}
 
     filterMatches() {
         let filtered = [...this.matches];
@@ -149,9 +154,10 @@ class LiveScores {
             <div class="match-detail-card" data-match-id="${match.id}" onclick="window.location.href='/match-detail.html?id=${match.id}'" style="cursor:pointer;">
                 <div class="match-header">
                     <span class="match-competition">${match.competition.name}${match.competition.level ? ` - ${match.competition.level}` : ''}</span>
-                    <span class="match-status live">
-                        <span class="live-pulse"></span>LIVE ${currentTime}' ${currentHalf === 1 ? '(1st Half)' : '(2nd Half)'}
-                    </span>
+                   // Change this line inside renderMatchCard:
+<span class="match-status live">
+    <span class="live-pulse"></span>${match.display_time}
+</span>
                 </div>
                 
                 <div class="score-display">

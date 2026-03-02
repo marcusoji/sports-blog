@@ -150,80 +150,89 @@ class mockuniversity {
     }
 
     // --- Time Calculation Helper ---
-    calculateMatchTime(matchDate) {
-        if (!matchDate) return 0;
-        const now = new Date();
-        const startTime = new Date(matchDate);
-        const elapsedMs = now - startTime;
-        const elapsedMinutes = Math.floor(elapsedMs / 60000);
-        
-        // Prevent showing negative time if clock is slightly off
-        // Cap at 100 for matches with heavy injury time if desired
-        return Math.max(0, elapsedMinutes);
-    }
+    calculateMatchTime(kickoff, status) {
+    if (status === 'ht') return 'HT';
+    if (status !== 'live') return status;
+    
+    const diff = Math.floor((new Date() - new Date(kickoff)) / 60000);
+    
+    if (diff >= 45 && diff < 50) return '45+\''; // Added '
+    if (diff >= 90) return '90+\'';              // Added '
+    return Math.max(0, diff) + "'";
+}
 
-    // Real-time Live Scores
-    async fetchLiveScores(containerId = 'live-scores') {
-        if (!this.supabase) return;
+   // Replace both fetchLiveScores and renderLiveScores with this one function
+async fetchLiveScores(containerId = 'live-scores') {
+    const container = document.getElementById(containerId);
+    if (!container || !this.supabase) return;
 
-        try {
-            const { data, error } = await this.supabase
-                .from('matches')
-                .select(`
-                    *,
-                    home_team:teams!matches_home_team_id_fkey(name, short_name, logo_url),
-                    away_team:teams!matches_away_team_id_fkey(name, short_name, logo_url),
-                    competition:competitions(name, type)
-                `)
-                .eq('status', 'live')
-                .order('match_date', { ascending: true });
+    try {
+        // 1. Fetch data with match_events for scorers
+        const { data: matches, error } = await this.supabase
+            .from('matches')
+            .select(`
+                *,
+                home_team:teams!matches_home_team_id_fkey(name, logo_url),
+                away_team:teams!matches_away_team_id_fkey(name, logo_url),
+                match_events(*)
+            `)
+            .or('status.eq.live,status.eq.ht') // Ensures HT matches show up
+            .order('match_date', { ascending: false });
 
-            if (error) throw error;
-
-            this.renderLiveScores(data, containerId);
-        } catch (error) {
-            console.error('Error fetching live scores:', error);
-        }
-    }
-
-    renderLiveScores(matches = [], containerId) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
+        if (error) throw error;
 
         if (!matches || matches.length === 0) {
-            container.innerHTML = '<p class="text-center text-secondary">No live matches at the moment</p>';
+            container.innerHTML = '<div class="no-matches">No live matches currently.</div>';
             return;
         }
 
-        const html = matches.map(match => {
-            // UPDATED: Calculate the time dynamically based on kickoff date
-            const currentTime = this.calculateMatchTime(match.match_date);
-            
+        // 2. Render HTML
+        container.innerHTML = matches.map(match => {
+            // Calculate time or show HT
+            const timeDisplay = this.calculateMatchTime(match.match_date, match.status);
+
+            // Filter scorers from events
+            const homeScorers = match.match_events
+                .filter(e => e.event_type === 'goal' && e.team_id === match.home_team_id)
+                .map(e => `<span>${e.player_name} ${e.event_minute}'</span>`)
+                .join('');
+
+            const awayScorers = match.match_events
+                .filter(e => e.event_type === 'goal' && e.team_id === match.away_team_id)
+                .map(e => `<span>${e.player_name} ${e.event_minute}'</span>`)
+                .join('');
+
             return `
-                <div class="match-card" data-match-id="${match.id}">
-                    <div class="match-header">
-                        <span class="match-competition">${match.competition.name}</span>
-                        <span class="match-status live">
-                            <span class="status-dot"></span>
-                            LIVE ${currentTime}'
+                <div class="live-card">
+                    <div class="live-header">
+                        <span class="live-indicator ${match.status === 'ht' ? 'ht-badge' : ''}">
+                            ${match.status === 'ht' ? 'HALF TIME' : 'LIVE'}
                         </span>
+                        <span class="live-time">${timeDisplay}</span>
                     </div>
-                    <div class="match-teams">
-                        <div class="team">
+                    <div class="live-body">
+                        <div class="team-col">
+                            <img src="${match.home_team.logo_url || 'assets/default.png'}" class="team-logo">
                             <span class="team-name">${match.home_team.name}</span>
-                            <span class="team-score">${match.home_score}</span>
+                            <div class="scorers-list">${homeScorers}</div>
                         </div>
-                        <div class="team">
+                        <div class="score-col">${match.home_score} - ${match.away_score}</div>
+                        <div class="team-col">
+                            <img src="${match.away_team.logo_url || 'assets/default.png'}" class="team-logo">
                             <span class="team-name">${match.away_team.name}</span>
-                            <span class="team-score">${match.away_score}</span>
+                            <div class="scorers-list">${awayScorers}</div>
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
 
-        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error in live scores:', error);
     }
+}
+    
+
 
     startLiveScoreUpdates(interval = 10000) {
         this.fetchLiveScores();

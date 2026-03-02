@@ -10,9 +10,12 @@ class AdminDashboard {
     }
 
     async init() {
+    // Check if another script (like main.js) already initialized supabase
+    if (!this.supabase) {
         if (typeof window.CONFIG !== 'undefined' && window.CONFIG.supabase) {
             this.supabase = supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
         }
+    }
         await this.checkAuth();
         this.setupNavigation();
         this.setupLogout();
@@ -20,6 +23,7 @@ class AdminDashboard {
         this.setupModalHandlers();
         await this.loadStats();
         await this.loadUserInfo();
+        // Add this to your init() method in admin-dashboard.js
     }
 
     async checkAuth() {
@@ -160,12 +164,40 @@ class AdminDashboard {
             console.error('Error deleting image from storage:', error);
         }
     }
+calculateMatchTime(matchDate, status) {
+    if (status === 'ht') return "HT";
+    if (status !== 'live' || !matchDate) return status;
 
+    const kickoff = new Date(matchDate).getTime();
+    const now = Date.now();
+    const elapsedMinutes = Math.floor((now - kickoff) / 60000);
+
+    if (elapsedMinutes >= 45 && elapsedMinutes < 50) return "45+"; 
+    if (elapsedMinutes >= 90) return "90+"; 
+    
+    return Math.max(0, elapsedMinutes) + "'";
+}
     async renderMatchesSection() {
+        
         const container = document.getElementById('dashboardContent');
         try {
             const { data, error } = await this.supabase.from('matches').select(`*,home_team:teams!matches_home_team_id_fkey(name),away_team:teams!matches_away_team_id_fkey(name),competition:competitions(name)`).order('match_date', { ascending: false }).limit(20);
             if (error) throw error;
+            // Add this at the end of renderMatchesSection()
+if (this.timerInterval) clearInterval(this.timerInterval);
+this.timerInterval = setInterval(() => {
+    const badges = document.querySelectorAll('.badge-live');
+    badges.forEach(badge => {
+        // This regex finds the number inside "LIVE 22'"
+        const currentText = badge.innerText;
+        const match = currentText.match(/\d+/);
+        if (match) {
+            const newMin = parseInt(match[0]) + 1;
+            badge.innerText = `LIVE ${newMin}'`;
+        }
+    });
+}, 60000); // Update the text every minute
+           
             container.innerHTML = `
                 <div class="content-section">
                     <div style="display:flex;justify-content:space-between;margin-bottom:1.5rem;">
@@ -175,20 +207,30 @@ class AdminDashboard {
                     ${data.length === 0 ? '<p>No matches yet</p>' : `
                         <table class="data-table">
                             <thead><tr><th>Date</th><th>Match</th><th>Score</th><th>Status</th><th>Actions</th></tr></thead>
-                            <tbody>${data.map(match => `
-                                <tr>
-                                    <td>${this.formatDate(match.match_date)}</td>
-                                    <td>${match.home_team.name} vs ${match.away_team.name}</td>
-                                    <td>${match.home_score || 0} - ${match.away_score || 0}</td>
-                                    <td><span class="badge badge-${match.status}">${match.status}</span></td>
-                                    <td>
-                                        <button class="btn-small" onclick="adminDashboard.manageMatch('${match.id}')">Manage</button>
-                                        ${match.status === 'live' ? `<button class="btn-small" onclick="adminDashboard.addGoal('${match.id}')">⚽ Goal</button>` : ''}
-                                    </td>
-                                </tr>
-                            `).join('')}</tbody>
-                        </table>
+// Update the <tbody> section to this:
+<tbody>${data.map(match => {
+    // We call the helper we just added
+    const matchTime = this.calculateMatchTime(match.match_date, match.status);
+    
+    const timeDisplay = match.status === 'live' || match.status === 'ht' 
+        ? `<span class="badge badge-live">${matchTime}</span>` 
+        : `<span class="badge">${match.status}</span>`;
+
+    return `
+        <tr>
+            <td>${this.formatDate(match.match_date)}</td>
+            <td>${match.home_team.name} vs ${match.away_team.name}</td>
+            <td>${match.home_score || 0} - ${match.away_score || 0}</td>
+            <td>${timeDisplay}</td>
+            <td>
+                <button class="btn-small" onclick="adminDashboard.manageMatch('${match.id}')">Manage</button>
+            </td>
+        </tr>
+    `;
+}).join('')}</tbody>                       
+ </table>
                     `}
+                    
                 </div>`;
         } catch (error) { console.error('Error loading matches:', error); container.innerHTML = '<div class="content-section"><p style="color:var(--color-live);">Failed to load matches</p></div>'; }
     }
@@ -309,13 +351,21 @@ class AdminDashboard {
                     <div><h3>${match.away_team.name}</h3><div style="font-size:3rem;font-weight:700;">${match.away_score || 0}</div></div>
                 </div>
                 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
-                    <button class="btn btn-primary" onclick="adminDashboard.addGoal('${matchId}')">⚽ Add Goal</button>
-                    <button class="btn" onclick="adminDashboard.addCard('${matchId}')">🟨 Add Card</button>
-                    ${match.status === 'live' ? `<button class="btn" onclick="adminDashboard.endMatchNow('${matchId}')">🏁 End Match</button>` : ''}
-                    ${match.status === 'scheduled' ? `<button class="btn btn-primary" onclick="adminDashboard.startMatch('${matchId}')">▶️ Start Match</button>` : ''}
-                </div>
-                
+// Find this section inside your manageMatch() function and replace the buttons:
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
+    <button class="btn btn-primary" onclick="adminDashboard.addGoal('${matchId}')">⚽ Goal</button>
+    <button class="btn" onclick="adminDashboard.addCard('${matchId}')">🟨 Card</button>
+    
+    ${match.status === 'live' ? `
+        <button class="btn btn-secondary" onclick="adminDashboard.setHalfTime('${matchId}')">⏸️ End 1st Half</button>
+    ` : ''}
+
+    ${match.status === 'ht' ? `
+        <button class="btn btn-primary" onclick="adminDashboard.startSecondHalf('${matchId}')">▶️ Start 2nd Half</button>
+    ` : ''}
+
+    <button class="btn" onclick="adminDashboard.endMatchNow('${matchId}')">🏁 End Match</button>
+</div>
                 <div><h3>Match Events</h3><div style="margin-top:1rem;max-height:300px;overflow-y:auto;">${events.length === 0 ? '<p style="color:var(--text-secondary);">No events yet</p>' : events.map(e => `
                     <div style="padding:0.75rem;background:var(--bg-card);margin-bottom:0.5rem;border-radius:var(--radius-md);display:flex;justify-content:space-between;">
                         <span>${e.event_type === 'goal' ? '⚽' : '🟨'} ${e.player_name} - ${e.event_minute}'</span>
@@ -415,8 +465,41 @@ class AdminDashboard {
             await this.renderMatchesSection();
         } catch (error) { console.error('Error ending match:', error); }
     }
+// Add these to your manageMatch button logic
+async setHalfTime(matchId) {
+    // This stops the clock and keeps the match visible
+    const { error } = await this.supabase
+        .from('matches')
+        .update({ status: 'ht' })
+        .eq('id', matchId);
+    
+    if (!error) {
+        this.showToast('success', 'Half Time', 'Clock paused at HT');
+        this.renderMatchesSection();
+    }
+}
 
-    async deleteEvent(eventId) {
+async startSecondHalf(matchId) {
+    if (!confirm('Start second half? Timer will resume from 45\'.')) return;
+    
+    // Logic: Set match_date to exactly 45 minutes ago so the timer starts at 45'
+    const fortyFiveMinsAgo = new Date(Date.now() - (45 * 60 * 1000)).toISOString();
+    
+    const { error } = await this.supabase
+        .from('matches')
+        .update({ 
+            status: 'live', 
+            match_date: fortyFiveMinsAgo 
+        })
+        .eq('id', matchId);
+
+    if (!error) {
+        this.showToast('success', 'Live', 'Second half started');
+        this.closeModal();
+        this.renderMatchesSection();
+    }
+}  
+async deleteEvent(eventId) {
         if (!confirm('Delete this event?')) return;
         try {
             await this.supabase.from('match_events').delete().eq('id', eventId);
@@ -718,7 +801,89 @@ class AdminDashboard {
             reader.onerror = reject;
         });
     }
+async editBlog(blogId) {
+    try {
+        const { data: post, error } = await this.supabase
+            .from('blog_posts')
+            .select('*')
+            .eq('id', blogId)
+            .single();
 
+        if (error) throw error;
+
+        // Show the standard form
+        await this.showBlogForm();
+        
+        // Update Modal Title and Button
+        document.getElementById('modalTitle').textContent = 'Edit Blog Post';
+        const submitBtn = document.querySelector('#blogForm button[type="submit"]');
+        submitBtn.textContent = 'Update Post';
+
+        // Fill fields
+        document.getElementById('blog_title').value = post.title;
+        document.getElementById('blog_slug').value = post.slug;
+        document.getElementById('blog_author').value = post.author;
+        document.getElementById('blog_excerpt').value = post.excerpt;
+        document.getElementById('blog_content').value = post.content;
+        document.getElementById('blog_status').value = post.status;
+        document.getElementById('blog_category').value = post.category || '';
+
+        // Handle Image Preview if exists
+        if (post.featured_image) {
+            const preview = document.getElementById('imagePreview');
+            document.getElementById('previewImg').src = post.featured_image;
+            preview.style.display = 'block';
+        }
+
+        // Update the submit listener to handle UPDATE instead of INSERT
+        const form = document.getElementById('blogForm');
+        const newForm = form.cloneNode(true); // Remove old listeners
+        form.parentNode.replaceChild(newForm, form);
+
+        newForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.updateBlog(blogId, post.featured_image);
+        });
+
+    } catch (error) {
+        this.showToast('error', 'Error', 'Could not load blog post');
+    }
+}
+
+async updateBlog(blogId, existingImageUrl) {
+    try {
+        const file = document.getElementById('blog_image').files[0];
+        let imageUrl = existingImageUrl;
+
+        if (file) {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const { data } = await this.supabase.storage.from('blog-images').upload(`blog-images/${fileName}`, file);
+            const { data: { publicUrl } } = this.supabase.storage.from('blog-images').getPublicUrl(`blog-images/${fileName}`);
+            imageUrl = publicUrl;
+        }
+
+        const blogData = {
+            title: document.getElementById('blog_title').value,
+            slug: document.getElementById('blog_slug').value,
+            author: document.getElementById('blog_author').value,
+            excerpt: document.getElementById('blog_excerpt').value,
+            content: document.getElementById('blog_content').value,
+            featured_image: imageUrl,
+            status: document.getElementById('blog_status').value,
+            category: document.getElementById('blog_category').value
+        };
+
+        const { error } = await this.supabase.from('blog_posts').update(blogData).eq('id', blogId);
+        if (error) throw error;
+
+        this.showToast('success', 'Updated', 'Blog post updated!');
+        this.closeModal();
+        await this.renderBlogSection();
+    } catch (error) {
+        this.showToast('error', 'Error', 'Update failed');
+    }
+}
     async trackMediaUpload(filepath, file, entityType, entityId) {
         try {
             await this.supabase.from('media_uploads').insert([{
