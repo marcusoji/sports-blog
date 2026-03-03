@@ -4,10 +4,11 @@
 const CONFIG = {
     // Supabase Configuration - uses env vars if available, falls back to hardcoded
     supabase: {
-        url: (typeof process !== 'undefined' && process.env.SUPABASE_URL),
-        anonKey: (typeof process !== 'undefined' && process.env.SUPABASE_ANON_KEY),
+        // Use strings directly if you aren't using a build tool like Vite/Webpack
+        url: 'SUPABASE_URL', 
+        anonKey: 'SUPABASE_ANON_KEY',
         // For admin operations (keep secure, use environment variables in production)
-        serviceRoleKey: (typeof process !== 'undefined' && process.env.SUPABASE_SERVICE_ROLE_KEY)
+        serviceRoleKey: 'SUPABASE_SERVICE_ROLE_KEY'
     },
     
     // WhatsApp Integration (for Contact Form)

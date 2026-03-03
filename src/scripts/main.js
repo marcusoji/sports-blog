@@ -309,12 +309,14 @@ startLiveScoreUpdates(interval = 10000) {
     }
 
     async renderBlogPosts(containerId, limit = 6) {
-        const posts = await this.fetchBlogPosts(limit);
-        const container = document.getElementById(containerId);
-        
-        if (!container) return;
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
-        if (posts.length === 0) {
+    try {
+        const posts = await this.fetchBlogPosts(limit);
+        
+        // FIX: Guard against null or undefined posts
+        if (!posts || posts.length === 0) {
             container.innerHTML = '<p class="text-center text-secondary">No posts available</p>';
             return;
         }
@@ -326,18 +328,22 @@ startLiveScoreUpdates(interval = 10000) {
                 ` : ''}
                 <div class="card-content">
                     <h3 class="card-title">${this.escapeHtml(post.title)}</h3>
-                    <p class="card-text">${this.escapeHtml(post.excerpt || post.content.substring(0, 150) + '...')}</p>
+                    <p class="card-text">${this.escapeHtml(post.excerpt || (post.content ? post.content.substring(0, 150) : '') + '...')}</p>
                     <div class="card-meta">
                         <span>📅 ${this.formatDate(post.published_date)}</span>
                         ${post.author ? `<span>✍️ ${this.escapeHtml(post.author)}</span>` : ''}
                     </div>
-                    <a href="/blog/${post.slug}" class="btn btn-primary mt-2">Read More</a>
+                    <a href="/blog-detail.html?slug=${post.slug}" class="btn btn-primary mt-2">Read More</a>
                 </div>
             </div>
         `).join('');
 
         container.innerHTML = html;
+    } catch (error) {
+        console.error("Error rendering blog posts:", error);
+        container.innerHTML = '<p class="text-center text-danger">Failed to load posts.</p>';
     }
+}
 
     // Fetch Upcoming Fixtures
     async fetchUpcomingFixtures(limit = 5) {
