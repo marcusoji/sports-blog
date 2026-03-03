@@ -22,6 +22,79 @@
         .event-icon{font-size:1.5rem;}
         .lineup-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;}
         .lineup-team{background:var(--bg-card);padding:1.5rem;border-radius:var(--radius-lg);}
+        
+        /* Football Pitch Styling */
+        .football-pitch {
+            position: relative;
+            height: 700px;
+            background: linear-gradient(to bottom, #2e7d32 0%, #2e7d32 50%, #388e3c 50%, #388e3c 100%);
+            border: 3px solid white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .football-pitch::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: white;
+            transform: translateY(-50%);
+        }
+        
+        .football-pitch::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80px;
+            height: 80px;
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .player-dot {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            z-index: 10;
+        }
+        
+        .dot-icon {
+            width: 36px;
+            height: 36px;
+            background: white;
+            border: 3px solid var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .dot-name {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .away-team .dot-icon {
+            background: #ffd700;
+            border-color: #ff6b00;
+            color: #ff6b00;
+        }
     </style>
 </head>
 <body>
@@ -110,22 +183,39 @@
 
         function calculateMatchTime() {
             if (!matchData || matchData.status !== 'live') return matchData.match_time || 0;
+            
             const now = new Date();
             const startTime = new Date(matchData.match_date);
             const elapsedMs = now - startTime;
             const elapsedMinutes = Math.floor(elapsedMs / 60000);
-            return Math.min(elapsedMinutes, (matchData.match_duration || 90) + 10);
+            const duration = matchData.match_duration || 90;
+            
+            // Cap at match duration + 10 minutes (for injury time)
+            return Math.min(elapsedMinutes, duration + 10);
         }
 
         function renderMatchHeader() {
             const currentTime = calculateMatchTime();
             const duration = matchData.match_duration || 90;
             const isLive = matchData.status === 'live';
+            const halfTime = Math.floor(duration / 2); // 45 for 90-minute match
+            
+            // Determine match period
+            let periodDisplay = '';
+            if (isLive) {
+                if (currentTime <= halfTime) {
+                    periodDisplay = `⚪ LIVE - First Half ${currentTime}'`;
+                } else if (currentTime <= duration) {
+                    periodDisplay = `⚪ LIVE - Second Half ${currentTime}'`;
+                } else {
+                    periodDisplay = `⚪ LIVE - Injury Time ${currentTime}'`;
+                }
+            }
             
             document.getElementById('matchHeader').innerHTML = `
                 <div style="text-align:center;margin-bottom:1rem;">
                     <h3>${matchData.competition.name}</h3>
-                    ${isLive ? `<div class="badge" style="background:var(--color-live);color:white;display:inline-block;padding:0.5rem 1rem;border-radius:var(--radius-full);margin-top:0.5rem;">⚪ LIVE ${currentTime}'</div>` : ''}
+                    ${isLive ? `<div class="badge" style="background:var(--color-live);color:white;display:inline-block;padding:0.5rem 1rem;border-radius:var(--radius-full);margin-top:0.5rem;">${periodDisplay}</div>` : ''}
                 </div>
                 <div class="match-score-large">
                     <div class="team-large">
@@ -215,66 +305,75 @@
                 </div>`;
         }
 
-       // Helper function to turn "Player 1, Player 2" into a list
-const formatList = (str) => {
-    if (!str || str.trim() === "") return '<li>Lineup not yet announced</li>';
-    return str.split(',').map(name => `<li>${name.trim()}</li>`).join('');
-};
+        // Realistic football formations with proper positioning
+       const FORMATION_COORDS = {
+    '4-3-3': [
+        {t: 92, l: 50}, // GK (Near bottom)
+        {t: 75, l: 15}, {t: 78, l: 38}, {t: 78, l: 62}, {t: 75, l: 85}, // DEF
+        {t: 62, l: 25}, {t: 65, l: 50}, {t: 62, l: 75}, // MID
+        {t: 54, l: 20}, {t: 52, l: 50}, {t: 54, l: 80}  // ATK (Stays behind 50% line)
+    ],
+    '4-4-2': [
+        {t: 92, l: 50}, // GK
+        {t: 75, l: 15}, {t: 78, l: 35}, {t: 78, l: 65}, {t: 75, l: 85}, // DEF
+        {t: 60, l: 15}, {t: 62, l: 38}, {t: 62, l: 62}, {t: 60, l: 85}, // MID
+        {t: 52, l: 40}, {t: 52, l: 60}  // ATK
+    ]
+};   
 
-// Helper to generate visual dots on the pitch
-function generatePlayerDots(lineupStr, side) {
-    if (!lineupStr || lineupStr.trim() === "") return '';
+      function generatePlayerDots(lineupStr, formation, side) {
+    if (!lineupStr) return '';
     const players = lineupStr.split(',');
-    // We only show the first 11 players on the pitch
-    return players.slice(0, 11).map((name, index) => {
+    const coords = FORMATION_COORDS[formation] || FORMATION_COORDS['4-3-3'];
+    
+    // Define the colors for Home (Red/Maroon) and Away (Blue/Gold)
+    const bgColor = side === 'home' ? '#1a4d7c' : '#d4af37'; // Match your university colors
+    const textColor = '#ffffff';
+
+    return players.map((name, index) => {
+        if (index >= 11) return '';
+        
+        let { t, l } = coords[index];
+        if (side === 'away') {
+            t = 100 - t; // Flip vertical
+            l = 100 - l; // Flip horizontal
+        }
+
         return `
-            <div class="player-dot">
-                <div class="dot-icon">${index + 1}</div>
-                <span class="dot-name">${name.trim().split(' ').pop()}</span>
-            </div>`;
+            <div class="player-dot" style="top: ${t}%; left: ${l}%;">
+                <div class="dot-icon" style="background-color: ${bgColor}; color: ${textColor};">
+                    ${index + 1}
+                </div>
+                <div class="dot-name">${name.trim()}</div>
+            </div>
+        `;
     }).join('');
 }
 
-function renderLineup() {
-    const container = document.getElementById('tabContent');
-    
-    container.innerHTML = `
-        <div class="lineup-container">
-            <div class="formation-header" style="display: flex; justify-content: space-between; padding: 10px; background: var(--bg-secondary); margin-bottom: 10px; border-radius: 8px;">
-                <span style="font-weight: bold; color: var(--primary-color);">${matchData.home_formation || 'TBA'}</span>
-                <span style="font-size: 0.8rem; color: var(--text-tertiary);">FORMATION</span>
-                <span style="font-weight: bold; color: var(--primary-color);">${matchData.away_formation || 'TBA'}</span>
-            </div>
+        function renderLineup() {
+            const container = document.getElementById('tabContent');
             
-            <div class="football-pitch">
-                <div class="pitch-half home-half">
-                    ${generatePlayerDots(matchData.home_lineup, 'home')}
+            // Get formations or default to 4-3-3
+            const homeFormation = matchData.home_formation || '4-3-3';
+            const awayFormation = matchData.away_formation || '4-3-3';
+            
+            container.innerHTML = `
+                <div style="margin-bottom:1rem;text-align:center;">
+                    <div style="display:inline-flex;gap:2rem;background:var(--bg-secondary);padding:0.75rem 1.5rem;border-radius:var(--radius-md);">
+                        <div><strong>${matchData.home_team.short_name}:</strong> ${homeFormation}</div>
+                        <div><strong>${matchData.away_team.short_name}:</strong> ${awayFormation}</div>
+                    </div>
                 </div>
-                <div class="pitch-half away-half">
-                    ${generatePlayerDots(matchData.away_lineup, 'away')}
+                <div class="football-pitch">
+                    ${generatePlayerDots(matchData.home_lineup, homeFormation, 'home')}
+                    ${generatePlayerDots(matchData.away_lineup, awayFormation, 'away')}
                 </div>
-            </div>
-
-            <div class="lineup-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;">
-                <div class="lineup-team">
-                    <h3 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem;">${matchData.home_team.name}</h3>
-                    <ul class="lineup-list" style="list-style: none; padding: 1rem 0;">
-                        ${formatList(matchData.home_lineup)}
-                    </ul>
-                </div>
-                <div class="lineup-team" style="text-align: right;">
-                    <h3 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem;">${matchData.away_team.name}</h3>
-                    <ul class="lineup-list" style="list-style: none; padding: 1rem 0;">
-                        ${formatList(matchData.away_lineup)}
-                    </ul>
-                </div>
-            </div>
-        </div>`;
-}
+            `;
+        }
 
         function startAutoRefresh(matchId) {
-            setInterval(() => {
-                loadMatchData(matchId);
+            setInterval(async () => {
+                await loadMatchData(matchId);
                 renderMatchHeader();
                 const activeTab = document.querySelector('.btn:not(.btn-secondary)').id.replace('btn', '').toLowerCase();
                 showTab(activeTab);

@@ -352,12 +352,10 @@ this.timerInterval = setInterval(() => {
                     <div><h3>${match.away_team.name}</h3><div style="font-size:3rem;font-weight:700;">${match.away_score || 0}</div></div>
                 </div>
                 
-// Find this section inside your manageMatch() function and replace the buttons:
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">
     <button class="btn btn-primary" onclick="adminDashboard.addGoal('${matchId}')">⚽ Goal</button>
     <button class="btn" onclick="adminDashboard.addCard('${matchId}')">🟨 Card</button>
-    // Inside the modalBody HTML string in manageMatch(matchId)
-<button class="btn btn-secondary" onclick="adminDashboard.editLineups('${matchId}')">📋 Edit Lineups</button>
+<button class="btn btn-primary" onclick="adminDashboard.editLineups('${matchId}')">📋 Edit Lineups</button>
     ${match.status === 'live' ? `
         <button class="btn btn-secondary" onclick="adminDashboard.setHalfTime('${matchId}')">⏸️ End 1st Half</button>
     ` : ''}
@@ -376,89 +374,86 @@ this.timerInterval = setInterval(() => {
                 `).join('')}</div></div>
             </div>
         `);
-    }
+    } 
     async editLineups(matchId) {
     const { data: match, error } = await this.supabase
         .from('matches')
-        .select(`
-            home_lineup, 
-            away_lineup, 
-            home_formation, 
-            away_formation,
-            home_team:teams!matches_home_team_id_fkey(name), 
-            away_team:teams!matches_away_team_id_fkey(name)
-        `)
-        .eq('id', matchId)
-        .single();
+        .select(`*, home_team:teams!matches_home_team_id_fkey(name), away_team:teams!matches_away_team_id_fkey(name)`)
+        .eq('id', matchId).single();
 
-    if (error) return alert("Error loading lineups");
+    if (error) return alert("Error loading match");
 
-    // --- DEFINE THE MISSING HELPER HERE ---
-    const formationOptions = ['4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '5-3-2', '4-1-4-1'];
-    
-    // This creates the <option> tags for the dropdown
-    const generateOptions = (selected) => formationOptions.map(f => 
-        `<option value="${f}" ${selected === f ? 'selected' : ''}>${f}</option>`
-    ).join('');
+    const formations = ['4-3-3', '4-4-2', '4-2-3-1', '3-5-2'];
+    const homePlayers = match.home_lineup ? match.home_lineup.split(',') : Array(11).fill('');
+    const awayPlayers = match.away_lineup ? match.away_lineup.split(',') : Array(11).fill('');
 
-    this.showModal('Edit Match Lineups & Formations', `
-        <form id="lineupForm" class="admin-form">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                <div>
-                    <h4 style="color: var(--primary-color);">${match.home_team.name}</h4>
-                    <div class="form-group">
-                        <label>Formation</label>
-                        <select id="homeFormation" class="form-control" style="width:100%; padding:8px; margin-bottom:10px;">
-                            ${generateOptions(match.home_formation || '4-3-3')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Players (Comma separated)</label>
-                        <textarea id="homeLineup" rows="8" class="form-control" style="width:100%;" placeholder="Player 1, Player 2...">${match.home_lineup || ''}</textarea>
-                    </div>
-                </div>
-                <div>
-                    <h4 style="color: var(--primary-color);">${match.away_team.name}</h4>
-                    <div class="form-group">
-                        <label>Formation</label>
-                        <select id="awayFormation" class="form-control" style="width:100%; padding:8px; margin-bottom:10px;">
-                            ${generateOptions(match.away_formation || '4-3-3')}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Players (Comma separated)</label>
-                        <textarea id="awayLineup" rows="8" class="form-control" style="width:100%;" placeholder="Player 1, Player 2...">${match.away_lineup || ''}</textarea>
-                    </div>
-                </div>
+    const renderPlayerInputs = (players, prefix) => {
+        return players.map((p, i) => `
+            <div style="margin-bottom:5px; display:flex; align-items:center; gap:10px;">
+                <span style="width:25px; font-weight:bold; color:var(--accent-color)">${i+1}</span>
+                <input type="text" class="${prefix}-p" value="${p.trim()}" placeholder="Player Name" style="flex:1; padding:5px; border:1px solid #ddd; border-radius:4px;">
             </div>
-            <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding-top: 15px; text-align: right;">
-                <button type="button" class="btn btn-secondary" onclick="adminDashboard.closeModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="adminDashboard.saveLineups('${matchId}')">Save Changes</button>
+        `).join('');
+    };
+
+    this.showModal('Tactical Lineup Editor', `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h4>${match.home_team.name} (Home)</h4>
+                <label>Formation</label>
+                <select id="homeFormation" class="form-control" style="margin-bottom:15px;">
+                    ${formations.map(f => `<option value="${f}" ${match.home_formation === f ? 'selected' : ''}>${f}</option>`).join('')}
+                </select>
+                <div id="homeInputs">${renderPlayerInputs(homePlayers, 'home')}</div>
             </div>
-        </form>
+            <div>
+                <h4>${match.away_team.name} (Away)</h4>
+                <label>Formation</label>
+                <select id="awayFormation" class="form-control" style="margin-bottom:15px;">
+                    ${formations.map(f => `<option value="${f}" ${match.away_formation === f ? 'selected' : ''}>${f}</option>`).join('')}
+                </select>
+                <div id="awayInputs">${renderPlayerInputs(awayPlayers, 'away')}</div>
+            </div>
+        </div>
+        <div style="margin-top:20px; text-align:right;">
+            <button class="btn btn-primary" onclick="adminDashboard.saveTacticalLineup('${matchId}')">Save Formation</button>
+        </div>
     `);
 }
 
-async saveLineups(matchId) {
-    const data = {
-        home_lineup: document.getElementById('homeLineup').value,
-        away_lineup: document.getElementById('awayLineup').value,
+async saveTacticalLineup(matchId) {
+    // 1. Collect all Home player names from the 11 inputs
+    const homeP = Array.from(document.querySelectorAll('.home-p'))
+        .map(input => input.value.trim() || 'Player')
+        .join(',');
+
+    // 2. Collect all Away player names from the 11 inputs
+    const awayP = Array.from(document.querySelectorAll('.away-p'))
+        .map(input => input.value.trim() || 'Player')
+        .join(',');
+
+    const updateData = {
+        home_lineup: homeP,
+        away_lineup: awayP,
         home_formation: document.getElementById('homeFormation').value,
         away_formation: document.getElementById('awayFormation').value
     };
 
     const { error } = await this.supabase
         .from('matches')
-        .update(data)
+        .update(updateData)
         .eq('id', matchId);
 
     if (error) {
-        alert("Error saving: " + error.message);
+        console.error("Save Error:", error);
+        alert("Failed to save: " + error.message);
     } else {
-        alert("Lineups and Formations updated successfully!");
+        alert("Tactics and Lineups saved successfully!");
         this.closeModal();
+        this.renderMatchesSection(); // Refresh the list
     }
-}    async addGoal(matchId) {
+}
+async addGoal(matchId) {
         const { data: match } = await this.supabase.from('matches').select(`*,home_team:teams!matches_home_team_id_fkey(id,name),away_team:teams!matches_away_team_id_fkey(id,name)`).eq('id', matchId).single();
         
         this.showModal('Add Goal', `
@@ -604,7 +599,7 @@ async deleteEvent(eventId) {
             team = data;
         }
         
-        this.showModal(team ? 'Edit Team' : 'Create New Team', `
+        this.showModal(team ? 'Team' : 'Create New Team', `
             <form id="teamForm" style="display:grid;gap:1rem;">
                 <div><label class="form-label">Team Name</label><input type="text" id="team_name" class="form-input" required placeholder="Full team name" value="${team ? this.escapeHtml(team.name) : ''}"></div>
                 <div><label class="form-label">Short Name</label><input type="text" id="team_short" class="form-input" required placeholder="3-4 letters" maxlength="4" value="${team ? this.escapeHtml(team.short_name) : ''}"></div>

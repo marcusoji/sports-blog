@@ -948,19 +948,41 @@ a:hover {
     color: var(--primary-color);
     font-family: 'Playfair Display', serif;
 }
+/* Update these in main.css */
 .football-pitch {
-    background: #2e7d32; /* Green pitch */
-    border: 2px solid white;
-    height: 400px;
-    width: 100%;
-    position: relative;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    margin: 20px 0;
+    position: relative; /* Essential! */
+    height: 500px; 
+    background: #2e7d32;
     overflow: hidden;
+    border: 3px solid white;
 }
 
+.player-dot {
+    position: absolute; /* Essential! */
+    transform: translate(-50%, -50%); /* Centers the player on the dot */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 80px; /* Gives name tag space without overlapping others */
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 5;
+}
+/* Colorful Standings UI */
+.standings-table tr:nth-child(1) td:first-child { 
+    border-left: 5px solid #ffd700; /* Gold for Leader */
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.stat-w { color: #2e7d32; font-weight: bold; } /* Wins - Green */
+.stat-d { color: #f57c00; font-weight: bold; } /* Draws - Orange */
+.stat-l { color: #d32f2f; font-weight: bold; } /* Losses - Red */
+
+.points-col {
+    background: var(--primary-light);
+    color: white;
+    font-weight: 800;
+    border-radius: 4px;
+}
 .football-pitch::before { /* Center line */
     content: '';
     position: absolute;
@@ -977,32 +999,34 @@ a:hover {
     padding: 10px;
 }
 
-.player-dot {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 20%;
-}
 
 .dot-icon {
-    width: 24px;
-    height: 24px;
-    background: white;
-    color: #2e7d32;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    font-size: 12px;
-    font-weight: bold;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffffff; /* Forces number to be white */
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .dot-name {
     color: white;
-    font-size: 10px;
-    text-shadow: 1px 1px 2px black;
-    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7); /* Dark background so white text shows on green pitch */
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 4px;
+    white-space: nowrap;
 }
+
+
 
 .formation-header {
     display: flex;
@@ -1011,4 +1035,124 @@ a:hover {
     background: var(--bg-secondary);
     font-weight: bold;
     border-radius: 5px;
+}
+.player-dot {
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+
+/* Colorful Standings */
+.standings-table tr:nth-child(1) td:first-child { 
+    border-left: 5px solid #ffd700; /* Gold for 1st place */
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.stat-w { color: #2e7d32; font-weight: bold; } /* Win - Green */
+.stat-d { color: #f57c00; font-weight: bold; } /* Draw - Orange */
+.stat-l { color: #d32f2f; font-weight: bold; } /* Loss - Red */
+
+.points-col {
+    background: var(--primary-light);
+    color: white;
+    font-weight: 800;
+    border-radius: 4px;
+}
+.status-badge.live {
+    background: #ff0000;
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+.status-badge.ht { background: var(--accent-color); color: var(--primary-dark); }
+.status-badge.ft { background: #333; color: white; }
+/* Professional Player Stat Cards */
+.stats-card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem;
+}
+
+.player-stat-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.player-stat-row:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stat-rank {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-tertiary);
+    opacity: 0.3;
+    width: 40px;
+}
+
+.stat-player-info {
+    flex-grow: 1;
+    padding: 0 1rem;
+}
+
+.stat-player-name {
+    display: block;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-team-name {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value-badge {
+    background: var(--primary-light);
+    color: white;
+    min-width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 8px rgba(42, 107, 168, 0.3);
+}
+
+/* Card Specific Colors */
+.stat-value-badge.goals { background: linear-gradient(135deg, #1a4d7c, #2a6ba8); }
+.stat-value-badge.yellow { background: #ffd700; color: #000; box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3); }
+.stat-value-badge.red { background: #d32f2f; color: #fff; box-shadow: 0 4px 8px rgba(211, 47, 47, 0.3); }
+@media (max-width: 768px) {
+    .stats-card-container {
+        grid-template-columns: 1fr;
+        padding: 0.5rem;
+    }
+    .player-stat-row {
+        padding: 0.75rem;
+    }
+    .stat-rank {
+        font-size: 1.2rem;
+        width: 30px;
+    }
 }

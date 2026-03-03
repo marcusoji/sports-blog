@@ -233,9 +233,26 @@ async fetchLiveScores(containerId = 'live-scores') {
 }
     
 
+// Add this inside the mockuniversity class
+getSmartTime(status, minute) {
+    const min = parseInt(minute) || 0;
+    
+    // Priority 1: Check for manual Half Time/Full Time status
+    if (status === 'ht') return '<span class="status-badge ht">HT</span>';
+    if (status === 'ft') return '<span class="status-badge ft">FT</span>';
+    
+    // Priority 2: Automatic transition rules
+    if (min >= 50 && status === 'live' && min < 60) return '<span class="status-badge ht">HT</span>';
+    if (min >= 100) return '<span class="status-badge ft">FT</span>';
 
-    startLiveScoreUpdates(interval = 10000) {
-        this.fetchLiveScores();
+    // Priority 3: Injury time formatting
+    if (min > 45 && min < 50) return `45+${min - 45}'`;
+    if (min > 90 && min < 100) return `90+${min - 90}'`;
+    
+    return min + "'";
+}
+startLiveScoreUpdates(interval = 10000) {
+    this.fetchLiveScores();
 
         if (this.liveScoreInterval) {
             clearInterval(this.liveScoreInterval);
