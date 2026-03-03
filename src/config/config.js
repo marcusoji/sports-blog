@@ -4,12 +4,9 @@
 const CONFIG = {
     // Supabase Configuration - uses env vars if available, falls back to hardcoded
     supabase: {
-        // Use strings directly if you aren't using a build tool like Vite/Webpack
-        url: 'SUPABASE_URL', 
-        anonKey: 'SUPABASE_ANON_KEY',
-        // For admin operations (keep secure, use environment variables in production)
-        serviceRoleKey: 'SUPABASE_SERVICE_ROLE_KEY'
-    },
+        url: (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || 'https://vlgzsooxujuhgrdytysv.supabase.co',
+        anonKey: (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsZ3pzb294dWp1aGdyZHl0eXN2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyMTE1NzcsImV4cCI6MjA4Nzc4NzU3N30.qkKH_MOgpYCnd6o_OPxoBbmGjiGruBr9_cqmIVIi3v8',
+        },
     
     // WhatsApp Integration (for Contact Form)
     whatsapp: {
