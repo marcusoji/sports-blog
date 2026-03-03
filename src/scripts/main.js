@@ -19,25 +19,29 @@ class mockuniversity {
     }
 
     // Initialize Supabase connection
-    initSupabase() {
-        if (typeof window.CONFIG !== 'undefined' && window.CONFIG.supabase) {
-            try {
-                this.supabase = window.supabase ? window.supabase.createClient(
-                    CONFIG.supabase.url,
-                    CONFIG.supabase.anonKey
-                ) : null;
-                console.log('✅ Supabase initialized');
-            } catch (error) {
-                console.error('❌ Supabase initialization failed:', error);
-            }
+   // 1. Improved Supabase Initialization
+initSupabase() {
+    if (typeof window.CONFIG !== 'undefined' && CONFIG.supabase.url && CONFIG.supabase.anonKey) {
+        try {
+            // Use the global supabase object from the CDN script
+            this.supabase = supabase.createClient(
+                CONFIG.supabase.url,
+                CONFIG.supabase.anonKey
+            );
+            console.log('✅ Supabase initialized successfully');
+        } catch (error) {
+            console.error('❌ Supabase initialization failed:', error);
         }
+    } else {
+        console.error('❌ Supabase Config missing! Check config.js');
     }
+}
 
-    // Theme Management
-    getTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) return savedTheme;
-        
+// Theme Management
+getTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) return savedTheme;
+
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             return 'dark';
         }
